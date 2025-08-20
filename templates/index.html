@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DeepFake Detection</title>
+<style>
+  /* Reset & base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0b1736;
+    color: #ddd;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  a {
+    color: #00f5d4;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+
+  /* Header */
+  header {
+    background: #09102a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 32px;
+    border-bottom: 1px solid #0c255a;
+  }
+  header h1 {
+    color: #00f5d4;
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+  nav {
+    display: flex;
+    gap: 24px;
+  }
+  nav button, nav span {
+    color: white;
+    background: #00433a;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 3px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  nav button:hover {
+    background: #00f5d4;
+    color: #0b1736;
+  }
+  nav span {
+    background: transparent;
+    padding: 6px 0;
+    cursor: pointer;
+  }
+
+  /* Main content */
+  main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 48px auto;
+    text-align: center;
+  }
+  main h2 {
+    color: #00f5d4;
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  main p.subtitle {
+    font-size: 1rem;
+    color: #a0a8be;
+    margin-bottom: 32px;
+  }
+
+  /* Upload box */
+  .upload-box {
+    border: 2px dashed #00f5d4;
+    border-radius: 6px;
+    padding: 24px;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+  .upload-box:hover {
+    background: rgba(0, 245, 212, 0.1);
+  }
+  .upload-box label {
+    color: #00f5d4;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+  input[type="file"] {
+    display: none;
+  }
+
+  /* Analyze button */
+  button.analyze-btn {
+    background: #00f5d4;
+    color: #0b1736;
+    border: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 14px 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  button.analyze-btn:hover {
+    background: #00d8c4;
+  }
+  button.analyze-btn:disabled {
+    background: #666;
+    cursor: not-allowed;
+  }
+
+  /* Supported formats text */
+  .formats {
+    font-size: 0.8rem;
+    color: #6a7293;
+  }
+
+  /* Preview container */
+  .preview-container {
+    margin: 20px 0;
+    color: #00f5d4;
+    font-weight: 600;
+    text-align: center;
+  }
+  .preview-media {
+    display: block;
+    margin: 12px auto 0;
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 6px;
+    border: 1px solid #00f5d4;
+  }
+
+  /* Loading indicator */
+  .loading {
+    display: none;
+    color: #00f5d4;
+    margin: 20px 0;
+  }
+  .spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #00f5d4;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Error message */
+  .error-message {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid #ff6b6b;
+    border-radius: 4px;
+    padding: 10px;
+    margin: 10px 0;
+    display: none;
+  }
+
+  /* File type indicator */
+  .file-type-indicator {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    margin-left: 8px;
+  }
+  .file-type-image {
+    background: #00f5d4;
+    color: #0b1736;
+  }
+  .file-type-video {
+    background: #ff6b6b;
+    color: white;
+  }
+
+  /* Footer */
+  footer {
+    background: #09102a;
+    padding: 32px 24px;
+    color: #6a7293;
+  }
+  footer .footer-container {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+  footer .footer-section {
+    min-width: 160px;
+  }
+  footer .footer-section h3 {
+    color: #00f5d4;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  footer .footer-section p {
+    margin: 6px 0;
+    line-height: 1.3;
+    font-size: 0.9rem;
+  }
+
+  /* Confirmation Modal */
+  .modal-backdrop {
+    position: fixed;
+    top:0; left:0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  .modal {
+    background: #0b1736;
+    border: 2px solid #00f5d4;
+    border-radius: 8px;
+    padding: 24px;
+    width: 320px;
+    text-align: center;
+    color: #ddd;
+  }
+  .modal svg {
+    fill: #00f5d4;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+  }
+  .modal button {
+    background: #00f5d4;
+    color: #0b1736;
+    border: none;
+    padding: 10px 24px;
+    margin: 0 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .modal button.cancel {
+    background: transparent;
+    color: #00f5d4;
+    border: 2px solid #00f5d4;
+  }
+  .modal button:hover {
+    opacity: 0.9;
+  }
+
+  /* Video results specific styles */
+  .video-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 20px 0;
+    text-align: left;
+  }
+  .stat-item {
+    background: rgba(0, 245, 212, 0.1);
+    border: 1px solid #00f5d4;
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .stat-label {
+    font-size: 0.8rem;
+    color: #a0a8be;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #00f5d4;
+  }
+  .frame-analysis {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 15px 0;
+    border: 1px solid #0c255a;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.2);
+  }
+  .frame-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #0c255a;
+  }
+  .frame-item:last-child {
+    border-bottom: none;
+  }
+  .frame-time {
+    color: #a0a8be;
+    font-size: 0.8rem;
+  }
+  .frame-prediction {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .frame-fake {
+    background: rgba(255, 107, 107, 0.2);
+    color: #ff6b6b;
+  }
+  .frame-real {
+    background: rgba(81, 207, 102, 0.2);
+    color: #51cf66;
+  }
+
+</style>
+</head>
+<body>
+  <header>
+    <h1>DeepFake Detection</h1>
+    <nav>
+      <button id="imageDetectBtn">Image & Video Detect</button>
+      <span id="logoutBtn">Logout</span>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Detect DeepFake Content</h2>
+    <p class="subtitle">Upload your image or video for AI-powered analysis to detect potential manipulation.</p>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div class="upload-box">
+        <label for="file-upload" id="uploadLabel">Choose Image or Video</label>
+        <input type="file" id="file-upload" name="file" accept="image/png, image/jpeg, image/jpg, image/gif, image/bmp, video/mp4, video/avi, video/mov, video/mkv, video/wmv, video/flv, video/webm" required />
+      </div>
+
+      <button type="submit" class="analyze-btn" id="analyzeBtn" disabled>Analyze</button>
+      <p class="formats">Supported formats: PNG, JPG, GIF, BMP, MP4, AVI, MOV, MKV, WMV, FLV, WEBM<br>(Images: Max 10MB, Videos: Max 100MB)</p>
+    </form>
+
+    <div class="error-message" id="errorMessage"></div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div id="loadingText">Analyzing content...</div>
+    </div>
+
+    <div class="preview-container" id="previewContainer" style="display:none;">
+      <div>
+        Uploaded file: <span id="fileName"></span>
+        <span id="fileTypeIndicator" class="file-type-indicator"></span>
+      </div>
+      <video id="videoPreview" class="preview-media" controls style="display:none;"></video>
+      <img id="imagePreview" class="preview-media" alt="Image preview" style="display:none;" />
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-container">
+      <!-- Footer content removed -->
+    </div>
+  </footer>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10 17l5-5-5-5v10z" />
+      </svg>
+      <p>Are you sure you want to exit?</p>
+      <div>
+        <button id="confirmExit">Yes</button>
+        <button class="cancel" id="cancelExit">No</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const fileInput = document.getElementById('file-upload');
+  const previewContainer = document.getElementById('previewContainer');
+  const fileNameDisplay = document.getElementById('fileName');
+  const fileTypeIndicator = document.getElementById('fileTypeIndicator');
+  const imagePreview = document.getElementById('imagePreview');
+  const videoPreview = document.getElementById('videoPreview');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const confirmExitBtn = document.getElementById('confirmExit');
+  const cancelExitBtn = document.getElementById('cancelExit');
+  const uploadForm = document.getElementById('uploadForm');
+  const loading = document.getElementById('loading');
+  const loadingText = document.getElementById('loadingText');
+  const errorMessage = document.getElementById('errorMessage');
+
+  let fileSelected = null;
+  let isVideo = false;
+
+  // Handle file upload and preview
+  fileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    fileSelected = file;
+    fileNameDisplay.textContent = file.name;
+
+    // Reset previews
+    imagePreview.style.display = 'none';
+    imagePreview.src = '';
+    videoPreview.style.display = 'none';
+    videoPreview.src = '';
+
+    const fileType = file.type;
+    isVideo = fileType.startsWith('video/');
+
+    // Set file type indicator
+    if (isVideo) {
+      fileTypeIndicator.textContent = 'VIDEO';
+      fileTypeIndicator.className = 'file-type-indicator file-type-video';
+    } else {
+      fileTypeIndicator.textContent = 'IMAGE';
+      fileTypeIndicator.className = 'file-type-indicator file-type-image';
+    }
+
+    // Check file size
+    const maxSize = isVideo ? 100 : 10;
+    if (file.size > maxSize * 1024 * 1024) {
+      showError(`File size exceeds ${maxSize}MB limit.`);
+      fileInput.value = '';
+      analyzeBtn.disabled = true;
+      previewContainer.style.display = 'none';
+      return;
+    }
+
+    // Check if it's a supported file type
+    if (!fileType.startsWith('image/') && !fileType.startsWith('video/')) {
+      showError('Please select an image or video file.');
+      fileInput.value = '';
+      analyzeBtn.disabled = true;
+      previewContainer.style.display = 'none';
+      return;
+    }
+
+    // Show preview
+    if (isVideo) {
+      const videoURL = URL.createObjectURL(file);
+      videoPreview.src = videoURL;
+      videoPreview.style.display = 'block';
+    } else {
+      const imageURL = URL.createObjectURL(file);
+      imagePreview.src = imageURL;
+      imagePreview.style.display = 'block';
+    }
+
+    previewContainer.style.display = 'block';
+    analyzeBtn.disabled = false;
+    hideError();
+  });
+
+  // Handle form submission
+  uploadForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    
+    if (!fileSelected) {
+      showError('Please upload a file first.');
+      return;
+    }
+
+    // Show loading
+    loading.style.display = 'block';
+    analyzeBtn.disabled = true;
+    hideError();
+    
+    const loadingMessage = isVideo ? 'Processing video frames...' : 'Analyzing image...';
+    loadingText.textContent = loadingMessage;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', fileSelected);
+
+      const response = await fetch('/predict', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Success - show result
+        showResult(result);
+      } else {
+        showError(result.error || 'Analysis failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      showError('Network error. Please check your connection and try again.');
+    } finally {
+      loading.style.display = 'none';
+      analyzeBtn.disabled = false;
+    }
+  });
+
+  function showResult(result) {
+    // Create result display
+    const resultDiv = document.createElement('div');
+    resultDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #09102a;
+      border: 2px solid #00f5d4;
+      border-radius: 8px;
+      padding: 30px;
+      text-align: center;
+      z-index: 10000;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    `;
+    
+    if (result.type === 'video') {
+      resultDiv.innerHTML = createVideoResultHTML(result);
+    } else {
+      resultDiv.innerHTML = createImageResultHTML(result);
+    }
+    
+    document.body.appendChild(resultDiv);
+  }
+
+  function createImageResultHTML(result) {
+    const icon = result.is_fake ? '🚫' : '✅';
+    const color = result.is_fake ? '#ff6b6b' : '#51cf66';
+    
+    return `
+      <div style="font-size: 3rem; margin-bottom: 20px;">${icon}</div>
+      <div style="font-size: 1.5rem; font-weight: bold; color: #00f5d4; margin-bottom: 10px;">${result.prediction}</div>
+      <div style="color: #a0a8be; margin-bottom: 20px;">Confidence: ${result.confidence}</div>
+      <button onclick="this.parentElement.remove()" style="background: #00f5d4; color: #0b1736; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Close</button>
+    `;
+  }
+
+  function createVideoResultHTML(result) {
+    const icon = result.is_fake ? '🚫' : '✅';
+    const color = result.is_fake ? '#ff6b6b' : '#51cf66';
+    
+    let frameAnalysisHTML = '';
+    if (result.frame_analysis && result.frame_analysis.length > 0) {
+      frameAnalysisHTML = `
+        <div class="frame-analysis">
+          <div style="padding: 10px; background: rgba(0, 245, 212, 0.1); border-bottom: 1px solid #0c255a; font-weight: bold; color: #00f5d4;">
+            Frame-by-Frame Analysis
+          </div>
+          ${result.frame_analysis.map(frame => `
+            <div class="frame-item">
+              <span class="frame-time">${frame.frame}ms</span>
+              <span class="frame-prediction ${frame.is_fake ? 'frame-fake' : 'frame-real'}">
+                ${frame.prediction} (${frame.confidence})
+              </span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    return `
+      <div style="font-size: 3rem; margin-bottom: 20px;">${icon}</div>
+      <div style="font-size: 1.5rem; font-weight: bold; color: #00f5d4; margin-bottom: 10px;">${result.overall_prediction}</div>
+      <div style="color: #a0a8be; margin-bottom: 15px;">Overall Confidence: ${result.overall_confidence}</div>
+      
+      <div class="video-stats">
+        <div class="stat-item">
+          <div class="stat-label">Total Frames Analyzed</div>
+          <div class="stat-value">${result.frame_count}</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Fake Frames</div>
+          <div class="stat-value" style="color: #ff6b6b;">${result.fake_frames} (${result.fake_percentage})</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Real Frames</div>
+          <div class="stat-value" style="color: #51cf66;">${result.real_frames} (${result.real_percentage})</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Video Duration</div>
+          <div class="stat-value">${result.video_metadata?.duration_formatted || 'N/A'}</div>
+        </div>
+      </div>
+      
+      ${frameAnalysisHTML}
+      
+      <div style="margin: 20px 0; font-size: 0.8rem; color: #6a7293;">
+        ${result.analysis_method}
+      </div>
+      
+      <button onclick="this.parentElement.remove()" style="background: #00f5d4; color: #0b1736; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Close</button>
+    `;
+  }
+
+  function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = 'block';
+  }
+
+  function hideError() {
+    errorMessage.style.display = 'none';
+  }
+
+  // Logout click handler with confirmation modal
+  logoutBtn.addEventListener('click', () => {
+    openExitConfirmation(() => {
+      alert('Logged out!');
+      window.location.href = '/logout';
+    });
+  });
+
+  function openExitConfirmation(onConfirm) {
+    modalBackdrop.style.display = 'flex';
+
+    function confirmHandler() {
+      modalBackdrop.style.display = 'none';
+      cleanup();
+      onConfirm();
+    }
+    function cancelHandler() {
+      modalBackdrop.style.display = 'none';
+      cleanup();
+    }
+    function cleanup() {
+      confirmExitBtn.removeEventListener('click', confirmHandler);
+      cancelExitBtn.removeEventListener('click', cancelHandler);
+    }
+
+    confirmExitBtn.addEventListener('click', confirmHandler);
+    cancelExitBtn.addEventListener('click', cancelHandler);
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    e.preventDefault();
+    e.returnValue = '';
+  });
+</script>
+</body>
+</html>

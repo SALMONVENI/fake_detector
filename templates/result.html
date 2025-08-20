@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detection Result - DeepFake Detection</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b1736;
+            color: #ddd;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .result-container {
+            background: #09102a;
+            border: 2px solid #00f5d4;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .fake {
+            color: #ff6b6b;
+        }
+        
+        .real {
+            color: #51cf66;
+        }
+        
+        .prediction {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00f5d4;
+        }
+        
+        .confidence {
+            font-size: 1.2rem;
+            color: #a0a8be;
+            margin-bottom: 30px;
+        }
+        
+        .back-btn {
+            background: #00f5d4;
+            color: #0b1736;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .back-btn:hover {
+            background: #00d8c4;
+        }
+        
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #00f5d4;
+        }
+    </style>
+</head>
+<body>
+    <div class="result-container">
+        {% if prediction %}
+            <div class="result-icon {% if 'Fake' in prediction %}fake{% else %}real{% endif %}">
+                {% if 'Fake' in prediction %}🚫{% else %}✅{% endif %}
+            </div>
+            
+            <div class="prediction">{{ prediction }}</div>
+            
+            {% if confidence %}
+                <div class="confidence">Confidence: {{ confidence }}</div>
+            {% endif %}
+            
+            {% if uploaded_image %}
+                <img src="{{ uploaded_image }}" alt="Uploaded image" class="uploaded-image">
+            {% endif %}
+        {% else %}
+            <div class="result-icon">❓</div>
+            <div class="prediction">No Result</div>
+            <div class="confidence">Something went wrong</div>
+        {% endif %}
+        
+        <a href="/" class="back-btn">Analyze Another Image</a>
+    </div>
+</body>
+</html>

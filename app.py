@@ -10,7 +10,7 @@ import tempfile
 import uuid
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'  # Required for flash messages
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here')  # Use environment variable in production
 
 # Global variables
 model = None
@@ -164,4 +164,9 @@ if __name__ == '__main__':
         print("Warning: Model could not be loaded. Please check if model.pth exists.")
     if video_processor is None:
         print("Warning: Video processor could not be initialized.")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    # Use environment variables for production deployment
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    
+    app.run(debug=debug, host='0.0.0.0', port=port)
